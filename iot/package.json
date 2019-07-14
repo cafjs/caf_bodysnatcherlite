@@ -1,0 +1,17 @@
+{
+    "name": "caf_iot_bodysnatcherlite",
+    "description": "Cloud Assistants VR/AR example (Device)",
+    "version": "0.3.0",
+    "author": "Antonio Lain <antlai@cafjs.com>",
+    "dependencies": {
+        "caf_iot" : "^0.3.0",
+        "caf_iot_http" : "^0.3.0",
+        "caf_iot_gatt" : "^0.3.0"
+    },
+    "scripts": {
+        "start" : "node ./index.js",
+        "build": "echo done"
+    },
+    "main": "index",
+    "engines": { "node": ">= 0.10.29" }
+}

@@ -1,0 +1,144 @@
+"use strict";
+
+exports.init = async function(ctx, localState, data) {
+    var arState = {};
+    arState.counter = 0;
+
+    var waitForClick = () => {
+        return new Promise((resolve, reject) => {
+            var btn = document.getElementById('enter-ar');
+            var onEnterAR = async function() {
+                console.log('clicked!');
+                try {
+//Need a token?                    document.body.requestFullscreen({navigationUI: 'hide'});
+                    //document.body.webkitRequestFullscreen();
+
+                    /* DO I NEED MIRRORING? */
+                    arState.canvas = document.createElement('canvas');
+                    arState.canvas.setAttribute('id', 'webxr-canvas');
+                    arState.ctx = arState.canvas.getContext('xrpresent');
+
+                    var constraints = {
+                        audio: false,
+                        video: {
+                            width: 1920,
+                            height: 1080,
+                            facingMode: {
+                                exact: "environment"
+                            }
+                        }
+                    };
+
+                    /*
+                    var track = stream.getVideoTracks()[0];
+                    var imageCapture = new ImageCapture(track);
+                    var test = await imageCapture.grabFrame();
+                    arState.imageCapture = imageCapture; */
+                    var reqTarget = (navigator.xr.requestSession &&
+                                     navigator.xr) ||
+                            // TO DELETE WHEN CANARY UPGRADES
+                            arState.device;
+
+
+                    arState.session =  await reqTarget
+                                            .requestSession('immersive-ar');
+//                        .requestSession('inline');
+//                        {
+//                        mode: 'immersive-ar'//,
+                        //mode: 'legacy-inline-ar'//,
+                        //environmentIntegration: true,// TO DELETE WITH UPGRADE
+                        /* DO I NEED MIRRORING? */
+//                        outputContext: arState.ctx
+//                    });
+
+//                     arState.session.mode = arState.session.mode || 'inline';
+                    arState.session.mode = arState.session.mode || 'immersive-ar';
+                    arState.frameOfRef = await arState.session
+                        .requestReferenceSpace('local');
+
+
+
+                    var stream = await navigator.mediaDevices
+                            .getUserMedia(constraints);
+                    arState.video = document.createElement('video');
+                    arState.video.autoplay = true;
+                    arState.video.srcObject = stream;
+                    arState.video.addEventListener('canplay', () => console.log('canplay'));
+                    arState.video.addEventListener('stalled', () => console.log('stalled'));
+                     arState.video.addEventListener('waiting', () => console.log('waiting'));
+                    arState.video.addEventListener('ended', () => console.log('ended'));
+                    arState.video.onloadedmetadata = () => {
+                        console.log('loadedmeta');
+                        arState.video.play();
+                    };
+
+
+
+
+                    /* DO I NEED MIRRORING? */
+                    document.body.appendChild(arState.canvas);
+
+                    var canvasOutput = document.createElement('canvas');
+                    canvasOutput.width = '100%';
+                    canvasOutput.height = '100%';
+                    canvasOutput.style = 'display:none';
+                    canvasOutput.setAttribute('id', 'canvasOutput');
+                    canvasOutput.setAttribute('z-index', '20');
+                    document.body.appendChild(canvasOutput);
+
+                    btn.classList.remove('btn-enter');
+                    btn.classList.add('btn-done');
+                    resolve(arState);
+                } catch (err) {
+                    reject(err);
+                }
+            };
+            btn.addEventListener('click', onEnterAR, {once: true});
+        });
+    };
+
+    if (window && window.navigator.xr && window.XRSession) {
+        // TO DELETE WHEN CANARY UPGRADES
+        if (window.navigator.xr.requestDevice) {
+            arState.device = await window.navigator.xr.requestDevice();
+        }
+
+        await waitForClick();
+        console.log('Done arUtil init');
+        localState.ar = arState;
+    } else {
+        throw new Error('Unsupported');
+    }
+
+    return arState;
+};
+
+exports.update = function(localState, gState) {
+    return localState;
+};
+
+exports.process = async function(localState, gState, frame) {
+    var arState = localState.ar;
+    arState.counter = arState.counter + 1;
+                                               // TO DELETE WHEN CANARY UPGRADES
+    frame.getViewerPose =  frame.getViewerPose || frame.getDevicePose; //new API
+    var pose = frame.getViewerPose(arState.frameOfRef);
+    if (pose) {
+                                  // TO DELETE WHEN CANARY UPGRADES
+        arState.poseModelMatrix = pose.poseModelMatrix || pose.transform.matrix;
+        var views = frame.views || pose.views; // TO DELETE
+        for (let view of views) {
+            // pick the last view, assumed just one for AR...
+            arState.projectionMatrix = view.projectionMatrix;
+            arState.viewMatrix = view.transform.inverse.matrix;// ~poseModelMatrix^-1
+            if (!arState.viewMatrix) { // TO DELETE WHEN CANARY UPGRADES
+                // old compatibility mode
+                arState.viewMatrix = pose.getViewMatrix &&
+                    pose.getViewMatrix(view);
+            }
+        }
+    } else {
+        // reuse the previous pose
+        console.log('.');
+    }
+};
