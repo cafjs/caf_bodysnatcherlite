@@ -1,20 +1,20 @@
 "use strict";
 
-var nj = require('numjs');
-var arucoUtil = require('./arucoUtil');
-var AppActions = require('./actions/AppActions');
+const nj = require('numjs');
+const arucoUtil = require('./arucoUtil');
+const AppActions = require('./actions/AppActions');
 
-var UPDATE_EVERY = 10;
+const UPDATE_EVERY = 10;
 
-var FAR_PLANE= 1000;
-var NEAR_PLANE= 0.01;
-var MAX_SNAP = 10;
-var THRESHOLD_ERROR = 2.5;
-var SCALE_FACTOR = 2;//4;
-var MINIMUM_GL_SIZE = 180;
+const FAR_PLANE= 1000;
+const NEAR_PLANE= 0.01;
+const MAX_SNAP = 10;
+const THRESHOLD_ERROR = 2.5;
+const SCALE_FACTOR = 2;//4;
+const MINIMUM_GL_SIZE = 180;
 
-var cv = require('../opencv');
-var cvPromise = (function() {
+const cv = require('../opencv');
+const cvPromise = (function() {
     return new Promise((resolve, reject) => {
         cv.onRuntimeInitialized = () => {
             console.log('Init cv OK');
@@ -27,7 +27,7 @@ var cvPromise = (function() {
 })();
 
 
-var gl2cvProjMat = function(projMat, width, height) {
+const gl2cvProjMat = function(projMat, width, height) {
 
     console.log(projMat);
 
@@ -43,7 +43,7 @@ var gl2cvProjMat = function(projMat, width, height) {
                             0,  0,  1]);
 };
 
-var openGLProjMat = function(width, height, fX, fY, cX, cY, near, far) {
+const openGLProjMat = function(width, height, fX, fY, cX, cY, near, far) {
     return nj.array([
         [2* fX / width, 0, 1 - 2 * (cX/width), 0],
         [0, 2 * fY / height, 2*(cY/height) -1 , 0],
@@ -55,16 +55,17 @@ var openGLProjMat = function(width, height, fX, fY, cX, cY, near, far) {
         .tolist();
 };
 
-var gPixelGLProjMat = function(width, height) {
+const gPixelGLProjMat = function(width, height) {
     const GPIXEL_F = 0.75;
-    const VERTICAL_F = 1.087; // image vertically compressed with aspect ratio
+    const VERTICAL_F = 1.0; // Fixed in 8thwall rel 12.0, no compression!
+    /* 1.087; // image vertically compressed with aspect ratio*/
     // force fX== fY
     return openGLProjMat(width, height, GPIXEL_F * width, VERTICAL_F *
                          GPIXEL_F * width,
                          width/2, height/2, NEAR_PLANE, FAR_PLANE);
 }
 
-var openGLViewMat = function(rot, trans, isReversedXZ) {
+const openGLViewMat = function(rot, trans, isReversedXZ) {
     var rotMat = new cv.Mat(3, 3, cv.CV_64F);
     cv.Rodrigues(rot, rotMat);
     var r = nj.array(rotMat.data64F, 'float64').reshape(3, 3);
@@ -92,7 +93,7 @@ var openGLViewMat = function(rot, trans, isReversedXZ) {
         .tolist();
 };
 
-var computeRemoteTarget = function(coordMapping, invMat) {
+const computeRemoteTarget = function(coordMapping, invMat) {
     /*
      * Until now we assumed that the coordinates of the remote target were
      * similar to the ones of "our" device, i.e.,  the one mapped by our CA.
@@ -126,7 +127,7 @@ var computeRemoteTarget = function(coordMapping, invMat) {
         .tolist();
 
 };
-var computeCoordMap = function(poseMat, viewMat) {
+const computeCoordMap = function(poseMat, viewMat) {
 
     /*
      * Assuming a similar projection matrix it should hold that:
@@ -144,12 +145,12 @@ var computeCoordMap = function(poseMat, viewMat) {
         .tolist();
 };
 
-var norm2 = function(x) {
+const norm2 = function(x) {
     var res = x.multiply(x).dot(nj.ones([x.shape[1],1]));
     return res.reshape(res.size); // flat, one row
 };
 
-var meanCoordMap  = function(all) {
+const meanCoordMap  = function(all) {
 
     var result = nj.zeros(16, 'float32');
     all.forEach(function(x) {
@@ -159,7 +160,7 @@ var meanCoordMap  = function(all) {
     return result.divide(all.length).tolist();
 };
 
-var stDev = function(all) {
+const stDev = function(all) {
     return nj.array(all, 'float32')
         .transpose()
         .tolist()
@@ -167,7 +168,7 @@ var stDev = function(all) {
         .map(x => (x === 0 ? 0.00000001 : x));
 };
 
-var medianCoordMap = function(all) {
+const medianCoordMap = function(all) {
     var allArray =  nj.array(all, 'float32');
     return allArray
         .transpose()
@@ -176,7 +177,7 @@ var medianCoordMap = function(all) {
         .map(x => x[Math.floor(x.length/2)]);
 };
 
-var closestToMedian = function(all) {
+const closestToMedian = function(all) {
     var median = medianCoordMap(all);
     var std = stDev(all);
     var allOne = nj.zeros(all.length, 'float32').add(1).reshape(all.length, 1);
@@ -197,7 +198,7 @@ var closestToMedian = function(all) {
 * Returns scanned top to bottom, left-to right using the wide side.
 *  and serialized as a C array (row-major)
 */
-var shortToLongScan = function(corners, size2D) {
+const shortToLongScan = function(corners, size2D) {
     var height =  size2D[0];
     var width =  size2D[1];
     var p = nj.array(corners, 'float32');
@@ -215,7 +216,7 @@ var shortToLongScan = function(corners, size2D) {
  * It returns a float32Array with the coordinates always in long scan order.
  *
 */
-var orderCorners = function(corners, size2D) {
+const orderCorners = function(corners, size2D) {
     var height =  size2D[0];
     var width =  size2D[1];
     var p = nj.array(corners, 'float32');
@@ -235,7 +236,7 @@ var orderCorners = function(corners, size2D) {
 
 };
 
-var extractCameraFrame = function(gl) {
+const extractCameraFrame = function(gl) {
 
     var result = {width: gl.drawingBufferWidth,
                   height: gl.drawingBufferHeight};
@@ -268,7 +269,7 @@ var extractCameraFrame = function(gl) {
 };
 
 
-var sanityCheck = function(projectionMatrix, coordMapping, localState, p3D,
+const sanityCheck = function(projectionMatrix, coordMapping, localState, p3D,
                            actualP2D, sizeChess, frame) {
     var arState = localState.ar;
     var coordMap = nj.array(coordMapping, 'float32').reshape(4, 4)
@@ -316,12 +317,12 @@ var sanityCheck = function(projectionMatrix, coordMapping, localState, p3D,
 };
 
 
-var toggleVideo = exports.toggleVideo = function(isOn, id) {
+const toggleVideo = exports.toggleVideo = function(isOn, id) {
     var canvas = document.getElementById('canvasOutput');
     var identifier = document.getElementById('identifier');
     var cameraFeed = document.getElementById('camerafeed');
     if (canvas) {
-        canvas.style = (isOn ? 'display:none' : 'display:block');
+        canvas.style = (isOn ? 'display:none' : 'display:block;z-index:1;');
     }
 
     if (cameraFeed) {
@@ -338,13 +339,13 @@ var toggleVideo = exports.toggleVideo = function(isOn, id) {
     }
 };
 
-var distance = function(x0, y0, x1, y1) {
+const distance = function(x0, y0, x1, y1) {
     var x = x0 - x1;
     var y = y0 - y1;
     return Math.sqrt(x*x + y*y);
 };
 
-var reverseXZ = function(p3D) {
+const reverseXZ = function(p3D) {
     if ((p3D[3] -p3D[0]) < 0) {
         console.log('Reversing XZ');
         /*solvePNP needs a bit of help, better 180 rotate over Y axis, i.e.,
