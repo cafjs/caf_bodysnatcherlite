@@ -12,6 +12,7 @@ const DEVICES = devices.DEVICES;
 var allDevices = function(ctx) {
     return Object.keys(DEVICES).sort().map((x, i) =>  cE(Entity, {
         primitive: 'a-ui-button',
+        class: 'clickable',
         key: 9232*i,
         width: 0.45,
         height: 0.3,

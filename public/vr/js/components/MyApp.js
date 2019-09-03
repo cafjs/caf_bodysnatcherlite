@@ -117,13 +117,13 @@ class MyApp extends React.Component {
                   }),
                   cE(Entity, {
                       'laser-controls' : 'hand: right',
-                      raycaster: 'far: 10; showLine: true',
+                      raycaster: 'objects: .clickable; far: 10; showLine: true',
                       line:'color: ' + newColor + '; opacity: 0.75'
-                  }),
+                  })/*,
                   cE(Entity, {
                       primitive: 'a-camera',
                       position: {x: 0, y: 1.5, z: -1.0}
-                  })
+                  })*/
                  );
     }
 };

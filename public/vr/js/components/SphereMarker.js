@@ -65,6 +65,7 @@ class SphereMarker extends React.Component {
                 primitive: 'sphere',
                 radius: 0.05
             },
+            class: 'clickable',
             material: style,
             position: position,
             events: {
